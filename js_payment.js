@@ -5,6 +5,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const paymentAmountDisplay = document.getElementById('payment-amount-display');
     const backToCartButton = document.getElementById('back-to-cart-button');
 
+    // Function to get logged-in customer info dynamically
+    function getCustomerInfo() {
+        // Example: assuming you save the user info in localStorage
+        const user = JSON.parse(localStorage.getItem('streetrUser'));
+        return user || {
+            id: "CUST001",
+            email: "customer@example.com",
+            phone: "9999999999"
+        };
+    }
+
+    // Setup payment page (UPI QR code fallback)
     function setupPaymentPage() {
         const amountToPay = window.paymentAmount || 0;
         if (amountToPay <= 0) {
@@ -13,67 +25,85 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         paymentAmountDisplay.textContent = `₹${amountToPay.toFixed(2)}`;
-        const upiData = `upi://pay?pa=your-upi-id@oksbi&pn=StreetR&am=${amountToPay.toFixed(2)}&cu=INR`;
-        paymentQrCodeContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiData)}" alt="Scan to Pay">`;
+
+        // UPI QR code fallback
+        const upiId = getCustomerInfo().upiId || "your-upi-id@oksbi"; // Optional: if you store UPI ID per user
+        const upiData = `upi://pay?pa=${upiId}&pn=StreetR&am=${amountToPay.toFixed(2)}&cu=INR`;
+        paymentQrCodeContainer.innerHTML = `
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiData)}" 
+                 alt="Scan to Pay">
+        `;
     }
 
-    cashfreeButton?.addEventListener('click', async () => {
-        const amountToPay = window.paymentAmount;
-        if (!amountToPay || amountToPay <= 0) {
-            alert('Invalid amount.');
-            return;
-        }
+    // Create Cashfree order via Supabase Edge Function
+    async function createCashfreeOrder(totalAmount) {
+        const customer = getCustomerInfo();
 
         try {
-            // Step 1: Create Order Token via your backend
-            const response = await fetch('/create-cashfree-order', {
-                method: 'POST',
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ amount: amountToPay })
-            });
+            const response = await fetch(
+                "https://rnjvqxdrvplgilqzwnpl.supabase.co/functions/v1/swift-task",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        cart: window.cartItems || [],
+                        totalAmount: totalAmount,
+                        customer: {
+                            id: customer.id,
+                            email: customer.email,
+                            phone: customer.phone
+                        }
+                    })
+                }
+            );
 
             const data = await response.json();
-            if (!data || !data.orderToken) {
-                alert("Failed to initiate payment.");
-                return;
-            }
+            if (data.error) throw new Error(data.error);
 
-            // Step 2: Configure Cashfree Checkout
-            const checkoutOptions = {
-                orderToken: data.orderToken,
-                onSuccess: async function (event) {
-                    console.log("Cashfree Payment Success:", event);
-                    alert(`Payment Successful! Order ID: ${event.order.orderId}`);
-                    await createOrder();
-                },
-                onFailure: function (event) {
-                    console.error("Cashfree Payment Failed:", event);
-                    alert("Payment Failed: " + event.message);
-                },
-                style: {
-                    backgroundColor: "#ffffff",
-                    color: "#FF7518",
-                    fontFamily: "Arial"
-                }
-            };
+            console.log("Cashfree Order Created:", data);
 
-            // Step 3: Open Cashfree Checkout
+            // Initialize Cashfree checkout
             if (window.Cashfree && window.Cashfree.checkout) {
-                window.Cashfree.checkout(checkoutOptions);
+                window.Cashfree.checkout({
+                    paymentSessionId: data.payment_session_id,
+                    redirectTarget: "_self",
+                    onSuccess: async (event) => {
+                        console.log("Payment Success:", event);
+                        alert(`Payment Successful! Order ID: ${event.order.orderId}`);
+                        await createOrder(); // finalize order in app
+                    },
+                    onFailure: (event) => {
+                        console.error("Payment Failed:", event);
+                        alert(`Payment Failed: ${event.message}`);
+                    }
+                });
             } else {
-                alert("Cashfree SDK not loaded.");
+                alert("Cashfree SDK not loaded. Please refresh.");
             }
 
         } catch (err) {
-            console.error("Cashfree Error:", err);
-            alert("Payment failed. Please try again.");
+            console.error("Cashfree Order Error:", err);
+            alert("Payment initialization failed.");
         }
+    }
+
+    // Cashfree button click
+    cashfreeButton?.addEventListener('click', () => {
+        const amountToPay = window.paymentAmount || 0;
+        if (amountToPay <= 0) {
+            alert("Invalid amount.");
+            return;
+        }
+
+        createCashfreeOrder(amountToPay);
     });
 
+    // Back button to return to cart page
     backToCartButton?.addEventListener('click', () => {
         navigateToPage('main-app-view', 'cart-page-content');
     });
 
+    // Listen for page changes to setup payment page
     window.addEventListener('pageChanged', (e) => {
         if (e.detail.pageId === 'payment-page') {
             setupPaymentPage();
