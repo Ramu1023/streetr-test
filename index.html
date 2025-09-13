@@ -121,18 +121,53 @@
                         <img src="assets/empty.png" alt="Empty Cart Illustration">
                         <p>Your cart is empty. Let's fill it up!</p>
                     </div>
-                    <div id="cart-summary" class="hidden">
-                        <h4>Bill Details</h4>
-                        <div class="bill-row"><span>Subtotal</span><span id="cart-subtotal"></span></div>
-                        <div class="bill-row"><span>GST (10%)</span><span id="cart-gst"></span></div>
-                        <div class="bill-row"><span>Delivery Fee</span><span id="cart-delivery-fee"></span></div>
-                        <div class="promo-code-container">
-                            <input type="text" id="promo-code" placeholder="Enter promo code">
-                            <button id="apply-promo-button">Apply</button>
-                        </div>
-                        <div class="bill-row grand-total"><span>Grand Total</span><span id="cart-grand-total"></span></div>
-                        <button id="place-order-button">Place Order</button>
-                    </div>
+                    <div 
+                        <div id="disclaimer-popup" class="modal-overlay hidden">
+    <div class="disclaimer-content">
+        <h3>Disclaimer</h3>
+        <p>Once you place an order, it cannot be canceled. Sorry for the inconvenience.</p>
+        <button id="disclaimer-ok-button">OK</button>
+    </div>
+</div>
+
+<div id="cart-summary" class="hidden">
+    <div class="delivery-switch-container">
+        <label for="door-delivery-switch" class="switch-label">Door Delivery</label>
+        <label class="switch">
+            <input type="checkbox" id="door-delivery-switch">
+            <span class="slider round"></span>
+        </label>
+    </div>
+    <h4>Bill Details</h4>
+    <div class="bill-row"><span>Item Charge</span><span id="cart-subtotal"></span></div>
+    <div class="bill-row"><span>Platform Charge</span><span id="cart-platform-charge"></span></div>
+    <div id="gst-row" class="bill-row hidden"><span>GST (10%)</span><span id="cart-gst"></span></div>
+    <div id="delivery-fee-row" class="bill-row hidden"><span>Delivery Fee</span><span id="cart-delivery-fee"></span></div>
+
+    <div class="promo-code-container">
+        <input type="text" id="promo-code" placeholder="Enter promo code">
+        <button id="apply-promo-button">Apply</button>
+    </div>
+    <div class="bill-row grand-total"><span>To Pay</span><span id="cart-grand-total"></span></div>
+    <button id="place-order-button">Place Order</button>
+</div>
+
+<div id="payment-page" class="page">
+    <div class="page-header-with-back">
+        <button id="back-to-cart-button" class="back-to-home-btn icon-button"><i class="fa-solid fa-arrow-left"></i></button>
+    </div>
+    <div class="page-header">Complete Your Payment</div>
+    <div class="page-content centered-content">
+        <h3>Total Amount: <span id="payment-amount-display"></span></h3>
+        <p>Scan the QR code to pay or use Razorpay.</p>
+        <div id="payment-qr-code">
+             <img src="assets/sample-qr.png" alt="Scan to Pay">
+        </div>
+        <button id="razorpay-button" class="button-green">
+            <i class="fa-solid fa-shield-halved"></i> Pay with Razorpay
+        </button>
+    </div>
+</div>
                 </div>
                 <div id="map-page-content" class="tab-content">
                     <div id="map-container"></div>
