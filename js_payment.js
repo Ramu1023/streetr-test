@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await fetch(
-                "https://rnjvqxdrvplgilqzwnpl.supabase.co/functions/v1/swift-task",
+                "https://rnjvqxdrvplgilqzwnpl.supabase.co/functions/v1/quick-task",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
