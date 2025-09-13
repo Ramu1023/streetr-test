@@ -1,15 +1,18 @@
-// js_add_to_cart.js
+// REPLACE the entire content of js_add_to_cart.js with this:
 const cartItemsContainer = document.getElementById('cart-items-container');
 const cartSummaryDiv = document.getElementById('cart-summary');
 const cartEmptyView = document.getElementById('cart-empty-view');
-
-// Bill details spans
+const doorDeliverySwitch = document.getElementById('door-delivery-switch');
 const cartSubtotalSpan = document.getElementById('cart-subtotal');
+const cartPlatformChargeSpan = document.getElementById('cart-platform-charge');
 const cartGstSpan = document.getElementById('cart-gst');
 const cartDeliveryFeeSpan = document.getElementById('cart-delivery-fee');
 const cartGrandTotalSpan = document.getElementById('cart-grand-total');
-
+const gstRow = document.getElementById('gst-row');
+const deliveryFeeRow = document.getElementById('delivery-fee-row');
 const placeOrderButton = document.getElementById('place-order-button');
+const disclaimerPopup = document.getElementById('disclaimer-popup');
+const disclaimerOkButton = document.getElementById('disclaimer-ok-button');
 
 function getCart() {
     return JSON.parse(localStorage.getItem('streetrCart')) || [];
@@ -17,7 +20,6 @@ function getCart() {
 
 function saveCart(cart) {
     localStorage.setItem('streetrCart', JSON.stringify(cart));
-    // Post a custom event that the cart has been updated
     window.dispatchEvent(new CustomEvent('cartUpdated'));
 }
 
@@ -30,7 +32,6 @@ function addToCart(item) {
         cart.push({ ...item, quantity: 1 });
     }
     saveCart(cart);
-    // Simple feedback, can be replaced with a less intrusive toast notification
     alert(`${item.name} added to cart!`);
     displayCartItems();
 }
@@ -56,6 +57,32 @@ function calculateDeliveryFee(subtotal) {
     return 30;
 }
 
+function updateBillDetails() {
+    const cart = getCart();
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const platformCharge = subtotal * 0.05; // 5% platform charge
+    let grandTotal = 0;
+
+    cartSubtotalSpan.textContent = `₹${subtotal.toFixed(2)}`;
+    cartPlatformChargeSpan.textContent = `₹${platformCharge.toFixed(2)}`;
+
+    if (doorDeliverySwitch.checked) {
+        const gst = subtotal * 0.10;
+        const deliveryFee = calculateDeliveryFee(subtotal);
+        grandTotal = subtotal + platformCharge + gst + deliveryFee;
+        cartGstSpan.textContent = `₹${gst.toFixed(2)}`;
+        cartDeliveryFeeSpan.textContent = `₹${deliveryFee.toFixed(2)}`;
+        gstRow.classList.remove('hidden');
+        deliveryFeeRow.classList.remove('hidden');
+    } else {
+        grandTotal = subtotal + platformCharge;
+        gstRow.classList.add('hidden');
+        deliveryFeeRow.classList.add('hidden');
+    }
+    cartGrandTotalSpan.textContent = `₹${grandTotal.toFixed(2)}`;
+    window.paymentAmount = grandTotal;
+}
+
 function displayCartItems() {
     const cart = getCart();
     cartItemsContainer.innerHTML = '';
@@ -71,11 +98,8 @@ function displayCartItems() {
     cartEmptyView.classList.add('hidden');
     placeOrderButton.classList.remove('hidden');
 
-    let subtotal = 0;
     cart.forEach(item => {
         const itemSubtotal = item.price * item.quantity;
-        subtotal += itemSubtotal;
-        
         const itemElement = document.createElement('div');
         itemElement.className = 'cart-item-card';
         itemElement.innerHTML = `
@@ -96,17 +120,8 @@ function displayCartItems() {
         cartItemsContainer.appendChild(itemElement);
     });
 
-    // Update bill details
-    const gst = subtotal * 0.10;
-    const deliveryFee = calculateDeliveryFee(subtotal);
-    const grandTotal = subtotal + gst + deliveryFee;
+    updateBillDetails();
 
-    cartSubtotalSpan.textContent = `₹${subtotal.toFixed(2)}`;
-    cartGstSpan.textContent = `₹${gst.toFixed(2)}`;
-    cartDeliveryFeeSpan.textContent = `₹${deliveryFee.toFixed(2)}`;
-    cartGrandTotalSpan.textContent = `₹${grandTotal.toFixed(2)}`;
-
-    // Add event listeners to new quantity buttons
     cartItemsContainer.querySelectorAll('.quantity-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const itemId = btn.dataset.id;
@@ -116,6 +131,12 @@ function displayCartItems() {
     });
 }
 
+doorDeliverySwitch?.addEventListener('change', updateBillDetails);
 placeOrderButton?.addEventListener('click', () => {
+    disclaimerPopup.classList.remove('hidden');
+});
+disclaimerOkButton?.addEventListener('click', () => {
+    disclaimerPopup.classList.add('hidden');
+    localStorage.setItem('deliveryChoice', doorDeliverySwitch.checked);
     navigateToPage('payment-page');
 });
