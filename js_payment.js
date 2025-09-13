@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // ✅ Corrected URL to call the 'create-order-token' function
             const response = await fetch(
-                "https://rnjvqxdrvplgilqzwnpl.supabase.co/functions/v1/create-order-token",
+                "https://rnjvqxdrvplgilqzwnpl.supabase.co/functions/v1/quick-task",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
