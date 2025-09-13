@@ -1,4 +1,4 @@
-// Corrected js_payment.js file
+// Corrected and complete js_payment.js file
 
 document.addEventListener('DOMContentLoaded', () => {
     const paymentQrCodeContainer = document.getElementById('payment-qr-code');
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const upiId = getCustomerInfo().upiId || "your-upi-id@oksbi";
         const upiData = `upi://pay?pa=${upiId}&pn=StreetR&am=${amountToPay.toFixed(2)}&cu=INR`;
         paymentQrCodeContainer.innerHTML = `
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiData)}" 
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiData)}"
                  alt="Scan to Pay">
         `;
     }
@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function createCashfreeOrder(totalAmount) {
         const customer = getCustomerInfo();
         try {
+            // ✅ Corrected URL to call the 'create-order-token' function
             const response = await fetch(
                 "https://rnjvqxdrvplgilqzwnpl.supabase.co/functions/v1/create-order-token",
                 {
@@ -91,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('pageChanged', (e) => {
         if (e.detail.pageId === 'payment-page') {
             setupPaymentPage();
-            // Attach the click listener to the button now that the page is loaded
+            // ✅ Attach the click listener to the button now that the page is loaded
             const cashfreeButton = document.getElementById('cashfree-button');
             cashfreeButton?.addEventListener('click', () => {
                 const amountToPay = window.paymentAmount || 0;
