@@ -176,3 +176,11 @@ moreMenuOverlay?.addEventListener('click', closeMoreMenu);
 // Initial auth check
 checkAuthState();
 });
+
+    // --- ADD THESE TWO LINES ---
+    const event = new CustomEvent('pageChanged', { detail: { pageId: pageId } });
+    window.dispatchEvent(event);
+    // -------------------------
+}
+
+
