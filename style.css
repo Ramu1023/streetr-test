@@ -955,6 +955,31 @@ button:hover {
 }
 
 /*back button in all page*/
+#detail-back-btn {
+  /* FIXED: Ensure detail back button is visible and on top */
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2000; /* Higher than image */
+  background-color: white; /* Visible against any background */
+  color: #333;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Stronger shadow */
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+#detail-back-btn:active {
+  transform: scale(0.95);
+}
+
 .back-to-home-btn {
   position: fixed;
   top: 16px;
