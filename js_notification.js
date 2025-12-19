@@ -4,7 +4,43 @@ const popup2 = document.getElementById('notification-popup-2');
 const popup3 = document.getElementById('notification-popup-3');
 const dontShowAgainCheckbox = document.getElementById('dont-show-again');
 
+// Initialize listeners immediately to ensure buttons always work
+document.addEventListener('DOMContentLoaded', () => {
+    // Add event listeners to all close buttons
+    document.querySelectorAll('.close-popup-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.target.closest('.popup-notification').classList.add('hidden');
+        });
+    });
+
+    // Add event listener for the "Don't show again" checkbox
+    if (dontShowAgainCheckbox) {
+        dontShowAgainCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                localStorage.setItem('dontShowStreetRPopup3', 'true');
+            } else {
+                localStorage.removeItem('dontShowStreetRPopup3');
+            }
+        });
+    }
+});
+
 function showPopUpNotifications() {
+    // --- CONTROL FREQUENCY ---
+    // Only show notifications once every hour to prevent irritation and lag
+    const lastShown = localStorage.getItem('lastNotificationTimestamp');
+    const now = Date.now();
+    const cooldown = 3600000; // 1 hour in milliseconds
+
+    // If shown recently (less than 1 hour ago), skip showing them again
+    if (lastShown && (now - parseInt(lastShown)) < cooldown) {
+        console.log("Skipping popups: Cooldown active.");
+        return; 
+    }
+
+    // Update the timestamp for next time
+    localStorage.setItem('lastNotificationTimestamp', now.toString());
+
     // Check if the user has opted out of seeing the third notification
     const dontShowPopup3 = localStorage.getItem('dontShowStreetRPopup3');
 
@@ -23,24 +59,6 @@ function showPopUpNotifications() {
         setTimeout(() => {
             popup3?.classList.remove('hidden');
         }, 8000);
-    }
-
-    // Add event listeners to all close buttons
-    document.querySelectorAll('.close-popup-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.target.closest('.popup-notification').classList.add('hidden');
-        });
-    });
-
-    // Add event listener for the "Don't show again" checkbox
-    if (dontShowAgainCheckbox) {
-        dontShowAgainCheckbox.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                localStorage.setItem('dontShowStreetRPopup3', 'true');
-            } else {
-                localStorage.removeItem('dontShowStreetRPopup3');
-            }
-        });
     }
 }
 
