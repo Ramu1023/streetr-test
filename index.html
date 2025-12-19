@@ -7,12 +7,21 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Cashfree JS SDK -->
-<script src="https://sdk.cashfree.com/js/ui/2.0.0/cashfree.prod.js"></script>
-
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 </head>
 <body>
     <div id="app">
+        <div id="disclaimer-modal" class="modal-overlay hidden">
+            <div class="disclaimer-popup">
+                <h4>Please Note</h4>
+                <p>Once you place the order, it cannot be cancelled. Sorry for the inconvenience.</p>
+                <div class="disclaimer-actions">
+                    <button id="disclaimer-cancel-btn" class="button-outline">Cancel</button>
+                    <button id="disclaimer-accept-btn" class="button-green">Accept & Proceed</button>
+                </div>
+            </div>
+        </div>
+
         <div id="loading-modal" class="modal-overlay hidden">
             <div class="loader-container">
                 <div class="spinning-circle"></div>
@@ -37,16 +46,30 @@
                 <label for="dont-show-again">Don't show this again</label>
             </div>
         </div>
+        
+        <!-- IMPROVED MORE MENU -->
         <div id="more-menu-popup" class="more-menu-popup hidden">
             <div class="more-menu-overlay"></div>
             <div class="more-menu-content">
                 <h3>More Options</h3>
-                <a href="https://www.example.com/moms" target="_blank" class="more-menu-item">Mom's</a>
-                <a href="https://www.example.com/puja" target="_blank" class="more-menu-item">Pujja</a>
-                <a href="https://www.example.com/groceries" target="_blank" class="more-menu-item">Groceries</a>
-                <button id="close-more-menu-btn" class="button-outline">Close</button>
+                <div class="more-links-list" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                    <a href="https://www.example.com/moms" target="_blank" class="more-menu-item" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; padding: 10px; border: 1px solid #eee; border-radius: 8px;">
+                        <img src="https://cdn-icons-png.flaticon.com/512/2922/2922506.png" alt="Moms" style="width: 30px; height: 30px; object-fit: contain;">
+                        <span style="font-weight: 500;">Mom's</span>
+                    </a>
+                    <a href="https://www.example.com/puja" target="_blank" class="more-menu-item" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; padding: 10px; border: 1px solid #eee; border-radius: 8px;">
+                        <img src="https://cdn-icons-png.flaticon.com/512/7096/7096997.png" alt="Puja" style="width: 30px; height: 30px; object-fit: contain;">
+                        <span style="font-weight: 500;">Pujja</span>
+                    </a>
+                    <a href="https://www.example.com/groceries" target="_blank" class="more-menu-item" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; padding: 10px; border: 1px solid #eee; border-radius: 8px;">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1261/1261163.png" alt="Groceries" style="width: 30px; height: 30px; object-fit: contain;">
+                        <span style="font-weight: 500;">Groceries</span>
+                    </a>
+                </div>
+                <button id="close-more-menu-btn" class="button-outline" style="width: 100%;">Close</button>
             </div>
         </div>
+
         <div id="confetti-container"></div>
         <header id="app-header" class="app-header" style="display: none;">
             <div class="header-left">
@@ -60,7 +83,7 @@
         <main id="page-container">
             <div id="login-page" class="page active">
                 <div class="page-content centered-content">
-                    <img src="assets/applogo.png" alt="App Logo" class="app-icon-large">
+                    <img src="https://uploads.onecompiler.io/42q5e2pr5/43m4t5ddk/1000130216.png" alt="App Logo" class="app-icon-large">
                     <h2>Welcome to StreetR!</h2>
                     <p>Your Favorite Foods, Snacks & Juices Delivered with a Smile!</p>
                     <input type="email" id="login-email" placeholder="Enter your email" autocomplete="email">
@@ -99,7 +122,7 @@
                 <div id="home-page-content" class="tab-content active">
                     <h3 class="popular-heading">Popular Items</h3>
                     <div id="popular-items-container" class="item-grid"></div>
-                    <h3>All Available Items</h3>
+                    <h3 class="main-item-heading">All Available Items</h3>
                     <div id="all-items-container" class="item-grid"></div>
                 </div>
                 <div id="orders-page-content" class="tab-content">
@@ -110,36 +133,25 @@
                     <h3>Your Cart</h3>
                     <div id="cart-items-container"></div>
                     <div id="cart-empty-view" class="empty-state hidden">
-                        <img src="assets/empty.png" alt="Empty Cart Illustration">
+                        <img src="https://uploads.onecompiler.io/42q5e2pr5/43nvveyp4/1000133809.png" alt="Empty Cart Illustration">
                         <p>Your cart is empty. Let's fill it up!</p>
                     </div>
-                    <div id="disclaimer-popup" class="modal-overlay hidden">
-                        <div class="disclaimer-content">
-                            <h3>Booking Policy</h3>
-                            <p> 📍 Pickup Only – No delivery available.<br>
-                                ❗ No Cancellation/No Refund – Once booked, orders cannot be changed or refunded.<br>
-                                Please review your details carefully before booking.</p>
-                            <button id="disclaimer-ok-button">OK</button>
-                        </div>
-                    </div>
                     <div id="cart-summary" class="hidden">
-                        <div class="delivery-switch-container">
-                            <label for="door-delivery-switch" class="switch-label">Door Delivery</label>
+                        <h4>Bill Details</h4>
+                        <div class="bill-row"><span>Subtotal</span><span id="cart-subtotal"></span></div>
+                        <div class="bill-row"><span>GST (10%)</span><span id="cart-gst"></span></div>
+                        <div class="bill-row"><span>Platform Fee</span><span id="cart-platform-fee"></span></div>
+                        <div class="bill-row" id="delivery-fee-row"><span>Delivery Fee</span><span id="cart-delivery-fee"></span></div>
+                        
+                        <div class="rahul-switch-container">
                             <label class="switch">
-                                <input type="checkbox" id="door-delivery-switch">
+                                <input type="checkbox" id="rahul-switch">
                                 <span class="slider round"></span>
                             </label>
+                            <label for="rahul-switch">Enable Door Delivery (Rahul Switch)</label>
                         </div>
-                        <h4>Bill Details</h4>
-                        <div class="bill-row"><span>Item Charge</span><span id="cart-subtotal"></span></div>
-                        <div class="bill-row"><span>Platform Charge</span><span id="cart-platform-charge"></span></div>
-                        <div id="gst-row" class="bill-row hidden"><span>GST (10%)</span><span id="cart-gst"></span></div>
-                        <div id="delivery-fee-row" class="bill-row hidden"><span>Delivery Fee</span><span id="cart-delivery-fee"></span></div>
-                        <div class="promo-code-container">
-                            <input type="text" id="promo-code" placeholder="Enter promo code">
-                            <button id="apply-promo-button">Apply</button>
-                        </div>
-                        <div class="bill-row grand-total"><span>To Pay</span><span id="cart-grand-total"></span></div>
+
+                        <div class="bill-row grand-total"><span>Grand Total</span><span id="cart-grand-total"></span></div>
                         <button id="place-order-button">Place Order</button>
                     </div>
                 </div>
@@ -147,24 +159,52 @@
                     <div id="map-container"></div>
                 </div>
                 <div id="profile-page-content" class="tab-content">
-                    <h3>Your Profile</h3>
+                     <h3>Your Profile</h3>
                     <div id="profile-details-view">
-                        <div class="profile-field"><label>Full Name:</label><p id="profile-display-name"></p></div>
-                        <div class="profile-field"><label>Mobile Number:</label><p id="profile-display-mobile"></p></div>
-                        <div class="profile-field"><label>Street Name / House No:</label><p id="profile-display-street"></p></div>
-                        <div class="profile-field"><label>Nearby Landmark:</label><p id="profile-display-landmark"></p></div>
-                        <div class="profile-field"><label>District:</label><p id="profile-display-district"></p></div>
-                        <div class="profile-field"><label>State:</label><p id="profile-display-state"></p></div>
-                        <div class="profile-field"><label>Pincode:</label><p id="profile-display-pincode"></p></div>
+                        <div class="profile-field">
+                            <label>Full Name:</label>
+                            <p id="profile-display-name"></p>
+                        </div>
+                        <div class="profile-field">
+                            <label>Mobile Number:</label>
+                            <p id="profile-display-mobile"></p>
+                        </div>
+                        <div class="profile-field">
+                            <label>Street Name / House No:</label>
+                            <p id="profile-display-street"></p>
+                        </div>
+                        <div class="profile-field">
+                            <label>Nearby Landmark:</label>
+                            <p id="profile-display-landmark"></p>
+                        </div>
+                        <div class="profile-field">
+                            <label>District:</label>
+                            <p id="profile-display-district"></p>
+                        </div>
+                        <div class="profile-field">
+                            <label>State:</label>
+                            <p id="profile-display-state"></p>
+                        </div>
+                        <div class="profile-field">
+                            <label>Pincode:</label>
+                            <p id="profile-display-pincode"></p>
+                        </div>
                     </div>
                     <form id="profile-edit-form" class="hidden">
-                        <label for="edit-customer-name">Full Name:</label><input type="text" id="edit-customer-name" required>
-                        <label for="edit-mobile-number">Mobile Number:</label><input type="tel" id="edit-mobile-number" required pattern="[0-9]{10}">
-                        <label for="edit-street-name">Street Name / House No:</label><input type="text" id="edit-street-name" required>
-                        <label for="edit-nearby-landmark">Nearby Landmark:</label><input type="text" id="edit-nearby-landmark" required>
-                        <label for="edit-district">District:</label><input type="text" id="edit-district" required>
-                        <label for="edit-state">State:</label><input type="text" id="edit-state" required>
-                        <label for="edit-pincode">Pincode:</label><input type="text" id="edit-pincode" required pattern="[0-9]{6}">
+                        <label for="edit-customer-name">Full Name:</label>
+                        <input type="text" id="edit-customer-name" required>
+                        <label for="edit-mobile-number">Mobile Number:</label>
+                        <input type="tel" id="edit-mobile-number" required pattern="[0-9]{10}">
+                        <label for="edit-street-name">Street Name / House No:</label>
+                        <input type="text" id="edit-street-name" required>
+                        <label for="edit-nearby-landmark">Nearby Landmark:</label>
+                        <input type="text" id="edit-nearby-landmark" required>
+                        <label for="edit-district">District:</label>
+                        <input type="text" id="edit-district" required>
+                        <label for="edit-state">State:</label>
+                        <input type="text" id="edit-state" required>
+                        <label for="edit-pincode">Pincode:</label>
+                        <input type="text" id="edit-pincode" required pattern="[0-9]{6}">
                         <button type="button" id="save-profile-changes-button">Save Changes</button>
                     </form>
                     <div class="profile-actions">
@@ -199,7 +239,7 @@
                     <div id="search-results-shops" class="search-results-content"></div>
                 </div>
                 <div id="search-empty-state" class="empty-state hidden">
-                    <img src="assets/results.png" alt="No results found">
+                    <img src="https://uploads.onecompiler.io/42q5e2pr5/43nvveyp4/1000133143.png" alt="No results found">
                     <p>No results found for '<span id="search-query-display"></span>'. Try another keyword.</p>
                 </div>
                 <button id="qr-scanner-button" class="qr-scanner-fab"><i class="fa-solid fa-qrcode"></i></button>
@@ -225,33 +265,48 @@
             </div>
             <div id="item-detail-page" class="page"></div>
             <div id="shop-profile-page" class="page"></div>
+            
             <div id="payment-page" class="page">
                 <div class="page-header-with-back">
-                    <button id="back-to-cart-button" class="icon-button"><i class="fa-solid fa-arrow-left"></i></button>
+                    <button class="back-to-home-btn icon-button"><i class="fa-solid fa-arrow-left"></i></button>
                 </div>
                 <div class="page-header">Complete Your Payment</div>
                 <div class="page-content centered-content">
-                    <h3>Total Amount: <span id="payment-amount-display"></span></h3>
-                    <p>Scan the QR code to pay or use Razorpay.</p>
-                    <div id="payment-qr-code">
-                        <img src="assets/sample-qr.png" alt="Scan to Pay">
-                    </div>
-                    <button id="cashfree-button" class="button-green">
-                        <i class="fa-solid fa-shield-halved"></i> Pay Now
+                    <h4>Secure Payment via Cashfree</h4>
+                    <p>Your order details will be finalized on the next screen.</p>
+                    <div id="payment-form-container"></div>
+                    <button id="initiate-payment-button" class="button-green">
+                        <i class="fa-solid fa-shield-halved"></i> Proceed to Pay
                     </button>
+                    <p id="payment-message" class="message"></p>
+                    <button id="back-to-cart-button" class="button-outline">Back to Cart</button>
                 </div>
             </div>
+
         </main>
         <footer id="page-footer" style="display: none;">
-            <div id="cart-footer" class="hidden"></div>
+            <div id="cart-footer" class="hidden">
+            </div>
         </footer>
         <nav id="bottom-nav" class="bottom-nav" style="display: none;">
-            <button data-page="home-page-content" class="nav-item active"><i class="fa-solid fa-house"></i><span>Home</span></button>
-            <button data-page="orders-page-content" class="nav-item"><i class="fa-solid fa-receipt"></i><span>Orders</span></button>
-            <button data-page="map-page-content" class="nav-item"><i class="fa-solid fa-map-location-dot"></i><span>Map</span></button>
-            <button data-page="cart-page-content" class="nav-item"><i class="fa-solid fa-cart-shopping"></i><span>Cart</span></button>
-            <button data-page="profile-page-content" class="nav-item"><i class="fa-solid fa-user"></i><span>Profile</span></button>
-            <button id="more-nav-button" class="nav-item"><i class="fa fa-bars"></i><span>More</span></button>
+            <button data-page="home-page-content" class="nav-item active">
+                <i class="fa-solid fa-house"></i><span>Home</span>
+            </button>
+            <button data-page="orders-page-content" class="nav-item">
+                <i class="fa-solid fa-receipt"></i><span>Orders</span>
+            </button>
+            <button data-page="map-page-content" class="nav-item">
+                <i class="fa-solid fa-map-location-dot"></i><span>Map</span>
+            </button>
+            <button data-page="cart-page-content" class="nav-item">
+                <i class="fa-solid fa-cart-shopping"></i><span>Cart</span>
+            </button>
+            <button data-page="profile-page-content" class="nav-item">
+                <i class="fa-solid fa-user"></i><span>Profile</span>
+            </button>
+            <button id="more-nav-button" class="nav-item">
+                <i class="fa fa-bars"></i><span>More</span>
+            </button>
         </nav>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
