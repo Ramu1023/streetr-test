@@ -26,7 +26,7 @@ async function loadHomePageContent() {
         const { data: items, error: itemsError } = await supabase
             .rpc('get_menu_items_with_likes', {
                 p_seller_ids: sellerIds,
-                p_user_id: window.currentUser.id
+                p_user_id: window.currentUser ? window.currentUser.id : null // Handle null user gracefully
             });
         if (itemsError) throw itemsError;
         
@@ -130,16 +130,26 @@ async function handleLikeClick(event) {
 }
 
 function shareItem(itemName, itemId) {
+    // 1. Construct the Deep Link URL
+    // We use window.location.origin + pathname to ensure we point to the app root, stripping any existing params
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}?itemId=${itemId}`;
+
     if (navigator.share) {
-        const baseUrl = window.location.href.split('?')[0];
-        const shareUrl = `${baseUrl}?itemId=${itemId}`;
         navigator.share({
             title: 'Check out this item on StreetR!',
-            text: `I found this delicious ${itemName} on the StreetR app!`,
+            // We include the URL in the text as well, because some apps (like WhatsApp) ignore the 'url' field
+            text: `I found this delicious ${itemName} on the StreetR app! Check it out here: ${shareUrl}`,
             url: shareUrl,
-        }).catch(console.error);
+        }).catch((error) => console.log('Error sharing', error));
     } else {
-        alert("Sharing is not supported on your browser.");
+        // Fallback for browsers that don't support Web Share API
+        try {
+            navigator.clipboard.writeText(shareUrl);
+            alert("Link copied to clipboard: " + shareUrl);
+        } catch (err) {
+            alert("Share this link: " + shareUrl);
+        }
     }
 }
 
@@ -162,27 +172,24 @@ async function showItemDetailPage(itemId) {
             .limit(5);
         if(otherItemsError) throw otherItemsError;
 
+        // FIXED: Using a specific ID "detail-back-btn" to avoid conflicts and cleaned up HTML
         itemDetailPage.innerHTML = `
             <div class="item-detail-header">
-                <button id="back-to-home-btn" class="icon-button"><i class="fa-solid fa-arrow-left"></i></button>
+                <button id="detail-back-btn" class="icon-button"><i class="fa-solid fa-arrow-left"></i></button>
             </div>
-            <button id="back-to-home-btn" class="icon-button"><i class="fa-solid fa-arrow-left"></i></button>
             <img src="${item.image_url || 'assets/placeholder-food.png'}" alt="${item.name}" class="item-detail-image">
             <div class="item-detail-content">
                 <h2>${item.name}</h2>
                 <p class="shop-name">From: ${item.seller.shop_name}</p>
                 <p class="item-price">₹${item.price.toFixed(2)}</p>
                 <p class="item-description">${item.description || 'No description available.'}</p>
-                <p ❤️${item.like_count}<p>
+                
                 <div class="item-detail-actions">
                      <button id="detail-like-btn" class="like-button-large"><i class="fa-regular fa-heart"></i> Likes 
                      <span class="like-count">${item.like_count ?? 0}</span>
-  
                      </button>
                      <button id="detail-share-btn" class="like-button-large"><i class="fa-solid fa-share-alt"></i> Share</button>
                      <button id="detail-add-to-cart-btn" class="add-to-cart-large"><i class="fa-solid fa-cart-plus"></i> Add to Cart</button>
-
-
                 </div>
                  <div class="more-from-shop">
                     <h3>More from ${item.seller.shop_name}</h3>
@@ -191,9 +198,18 @@ async function showItemDetailPage(itemId) {
             </div>
         `;
 
+        // Render "More from shop" items
         renderItems(otherItems, itemDetailPage.querySelector('#more-items-container'), 'more');
         
-        itemDetailPage.querySelector('#back-to-home-btn').addEventListener('click', () => navigateToPage('main-app-view', 'home-page-content'));
+        // FIXED: Attach Event Listener to the specific back button
+        const backBtn = itemDetailPage.querySelector('#detail-back-btn');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                // Navigate back to the Home Tab content
+                navigateToPage('main-app-view', 'home-page-content');
+            });
+        }
+        
         itemDetailPage.querySelector('#detail-add-to-cart-btn').addEventListener('click', () => {
             addToCart(item);
             launchConfetti();
@@ -210,3 +226,18 @@ async function showItemDetailPage(itemId) {
         hideLoader();
     }
 }
+
+// --- DEEP LINK HANDLER ---
+// This block runs when the page loads. It checks if there is an 'itemId' in the URL.
+// If found, it automatically opens that item, allowing users to view shared items easily.
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedItemId = urlParams.get('itemId');
+    
+    if (sharedItemId) {
+        console.log("Deep link detected for item:", sharedItemId);
+        // We wait a brief moment to ensure other init logic (like Supabase) is ready, 
+        // though strictly not required as showItemDetailPage handles its own data fetching.
+        showItemDetailPage(sharedItemId);
+    }
+});
