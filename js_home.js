@@ -112,38 +112,46 @@ async function handleLikeClick(event) {
     button.dataset.liked = !isLiked;
     icon.className = `fa-${!isLiked ? 'solid' : 'regular'} fa-heart`;
 
+    // Optimistically update count if it exists in this button context
+    const countSpan = button.querySelector('.like-count');
+    if (countSpan) {
+        let currentCount = parseInt(countSpan.textContent) || 0;
+        countSpan.textContent = isLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
+    }
+
     try {
         if (isLiked) {
             await supabase.from('likes').delete().match({ user_id: window.currentUser.id, menu_item_id: itemId });
         } else {
             await supabase.from('likes').insert({ user_id: window.currentUser.id, menu_item_id: itemId });
         }
-        // Optionally reload content to update like counts everywhere
-        loadHomePageContent();
+        // Reload home page content to keep sync, but catch errors silently so it doesn't disrupt UI
+        loadHomePageContent().catch(err => console.warn('Background update failed', err));
     } catch (error) {
         console.error("Error updating like:", error);
         // Revert UI on error
         button.classList.toggle('liked', isLiked);
         button.dataset.liked = isLiked;
         icon.className = `fa-${isLiked ? 'solid' : 'regular'} fa-heart`;
+         if (countSpan) {
+            let currentCount = parseInt(countSpan.textContent) || 0;
+            countSpan.textContent = isLiked ? currentCount + 1 : Math.max(0, currentCount - 1);
+        }
     }
 }
 
 function shareItem(itemName, itemId) {
     // 1. Construct the Deep Link URL
-    // We use window.location.origin + pathname to ensure we point to the app root, stripping any existing params
     const baseUrl = window.location.origin + window.location.pathname;
     const shareUrl = `${baseUrl}?itemId=${itemId}`;
 
     if (navigator.share) {
         navigator.share({
             title: 'Check out this item on StreetR!',
-            // We include the URL in the text as well, because some apps (like WhatsApp) ignore the 'url' field
             text: `I found this delicious ${itemName} on the StreetR app! Check it out here: ${shareUrl}`,
             url: shareUrl,
         }).catch((error) => console.log('Error sharing', error));
     } else {
-        // Fallback for browsers that don't support Web Share API
         try {
             navigator.clipboard.writeText(shareUrl);
             alert("Link copied to clipboard: " + shareUrl);
@@ -163,6 +171,18 @@ async function showItemDetailPage(itemId) {
             .single();
         if (error) throw error;
 
+        // NEW: Fetch Is Liked Status specifically for this item
+        let isLiked = false;
+        if (window.currentUser) {
+             const { data: likeData } = await supabase
+            .from('likes')
+            .select('id')
+            .eq('user_id', window.currentUser.id)
+            .eq('menu_item_id', itemId)
+            .maybeSingle();
+            isLiked = !!likeData;
+        }
+
         // Fetch other items from the same seller
         const { data: otherItems, error: otherItemsError } = await supabase
             .from('menu_items')
@@ -171,6 +191,10 @@ async function showItemDetailPage(itemId) {
             .neq('id', item.id) // Exclude the current item
             .limit(5);
         if(otherItemsError) throw otherItemsError;
+
+        // Determine icon based on like status
+        const likeIconClass = isLiked ? 'fa-solid' : 'fa-regular';
+        const likeButtonClass = isLiked ? 'like-button-large liked' : 'like-button-large';
 
         // FIXED: Using a specific ID "detail-back-btn" to avoid conflicts and cleaned up HTML
         itemDetailPage.innerHTML = `
@@ -185,8 +209,9 @@ async function showItemDetailPage(itemId) {
                 <p class="item-description">${item.description || 'No description available.'}</p>
                 
                 <div class="item-detail-actions">
-                     <button id="detail-like-btn" class="like-button-large"><i class="fa-regular fa-heart"></i> Likes 
-                     <span class="like-count">${item.like_count ?? 0}</span>
+                     <button id="detail-like-btn" class="${likeButtonClass}" data-item-id="${item.id}" data-liked="${isLiked}">
+                        <i class="${likeIconClass} fa-heart"></i> Likes 
+                        <span class="like-count">${item.like_count ?? 0}</span>
                      </button>
                      <button id="detail-share-btn" class="like-button-large"><i class="fa-solid fa-share-alt"></i> Share</button>
                      <button id="detail-add-to-cart-btn" class="add-to-cart-large"><i class="fa-solid fa-cart-plus"></i> Add to Cart</button>
@@ -198,17 +223,20 @@ async function showItemDetailPage(itemId) {
             </div>
         `;
 
-        // FIXED: Attach Event Listener IMMEDIATELY after innerHTML update
-        // This ensures the listener is attached before any other logic runs
+        // FIXED: Attach Back Button Event Listener IMMEDIATELY
         const backBtn = itemDetailPage.querySelector('#detail-back-btn');
         if (backBtn) {
             backBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log("Back button clicked"); // Debugging
-                // Navigate back to the Home Tab content
                 navigateToPage('main-app-view', 'home-page-content');
             });
+        }
+
+        // FIXED: Attach Like Button Event Listener
+        const likeBtn = itemDetailPage.querySelector('#detail-like-btn');
+        if (likeBtn) {
+            likeBtn.addEventListener('click', handleLikeClick);
         }
 
         // Render "More from shop" items
