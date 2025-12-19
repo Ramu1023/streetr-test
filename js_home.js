@@ -175,7 +175,7 @@ async function showItemDetailPage(itemId) {
         // FIXED: Using a specific ID "detail-back-btn" to avoid conflicts and cleaned up HTML
         itemDetailPage.innerHTML = `
             <div class="item-detail-header">
-                <button id="detail-back-btn" class="icon-button"><i class="fa-solid fa-arrow-left"></i></button>
+                <button id="detail-back-btn" class="icon-button" type="button"><i class="fa-solid fa-arrow-left"></i></button>
             </div>
             <img src="${item.image_url || 'assets/placeholder-food.png'}" alt="${item.name}" class="item-detail-image">
             <div class="item-detail-content">
@@ -198,17 +198,21 @@ async function showItemDetailPage(itemId) {
             </div>
         `;
 
-        // Render "More from shop" items
-        renderItems(otherItems, itemDetailPage.querySelector('#more-items-container'), 'more');
-        
-        // FIXED: Attach Event Listener to the specific back button
+        // FIXED: Attach Event Listener IMMEDIATELY after innerHTML update
+        // This ensures the listener is attached before any other logic runs
         const backBtn = itemDetailPage.querySelector('#detail-back-btn');
         if (backBtn) {
-            backBtn.addEventListener('click', () => {
+            backBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Back button clicked"); // Debugging
                 // Navigate back to the Home Tab content
                 navigateToPage('main-app-view', 'home-page-content');
             });
         }
+
+        // Render "More from shop" items
+        renderItems(otherItems, itemDetailPage.querySelector('#more-items-container'), 'more');
         
         itemDetailPage.querySelector('#detail-add-to-cart-btn').addEventListener('click', () => {
             addToCart(item);
