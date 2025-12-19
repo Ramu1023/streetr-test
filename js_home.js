@@ -30,10 +30,18 @@ async function loadHomePageContent() {
             });
         if (itemsError) throw itemsError;
         
+        // 1. Popular Items: Sort by likes and take top 4
         const popularItems = [...items].sort((a, b) => b.like_count - a.like_count).slice(0, 4);
-
         renderItems(popularItems, popularItemsContainer, 'popular');
-        renderItems(items, allItemsContainer, 'all');
+
+        // 2. All Items: Randomize the order (Fisher-Yates Shuffle)
+        const shuffledItems = [...items];
+        for (let i = shuffledItems.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledItems[i], shuffledItems[j]] = [shuffledItems[j], shuffledItems[i]];
+        }
+        renderItems(shuffledItems, allItemsContainer, 'all');
+
     } catch (error) {
         console.error('Error loading home page:', error);
         allItemsContainer.innerHTML = '<p>Could not load items. Please try again.</p>';
